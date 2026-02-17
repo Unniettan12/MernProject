@@ -1,30 +1,25 @@
 import { useState } from "react";
 import "./login.css";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../utils/AuthContext";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const { loginFunc } = useAuth();
+
+  const navigate = useNavigate();
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // console.log({ email, password });
-
-    axios({
-      method: "POST",
-      url: "http://localhost:8000/api/auth/login",
-      data: {
-        email: email,
-        password: password,
-      },
-    })
-      .then((response) => {
-        console.log("Response is ", response);
-      })
-      .catch((e) => {
-        console.log("ERROR DETECTED : ", e);
-      });
-    // later: call login API
+    try {
+      await loginFunc(email, password);
+    } catch (error) {
+      console.log("error in logging in :", error);
+    } finally {
+      // navigate("/dashboard");
+    }
   };
 
   return (
