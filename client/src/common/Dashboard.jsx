@@ -1,13 +1,10 @@
 import axios from "axios";
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../utils/AuthContext";
 // import { MenuIcon, XIcon } from "@heroicons/react/solid";
 
 const Dashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const navigate = useNavigate();
-
   const { logoutFunc } = useAuth();
   const onLogout = async (e) => {
     e.preventDefault();
@@ -21,7 +18,7 @@ const Dashboard = () => {
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
-      {sidebarOpen && (
+      {/* {sidebarOpen && (
         <div className="fixed inset-y-0 left-0 w-64 bg-white shadow-lg z-20">
           <div className="p-4 border-b">
             <button
@@ -29,21 +26,17 @@ const Dashboard = () => {
               className="text-gray-700"
             >
               <p>X Icon</p>
-              {/* <XIcon className="h-6 w-6" /> */}
             </button>
           </div>
 
           <nav className="p-4">
-            {/* Sidebar items go here */}
             <p className="text-gray-500">Sidebar item 1</p>
             <p className="text-gray-500">Sidebar item 2</p>
           </nav>
         </div>
       )}
 
-      {/* Content area */}
       <div className="flex-1 flex flex-col">
-        {/* Top Navbar */}
         <header className="flex items-center justify-between px-6 py-4 bg-white shadow-md">
           <div>
             <button
@@ -51,7 +44,6 @@ const Dashboard = () => {
               className="text-gray-700 focus:outline-none"
             >
               <p>Menu Icon</p>
-              {/* <MenuIcon className="h-6 w-6" /> */}
             </button>
           </div>
 
@@ -60,16 +52,16 @@ const Dashboard = () => {
               Logout
             </button>
           </div>
-        </header>
+        </header> */}
 
-        {/* Main Content */}
-        <main className="p-8">
-          <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
-          <p className="mt-4 text-gray-600">
-            Welcome to your dashboard! Content goes here.
-          </p>
-        </main>
-      </div>
+      {/* Main Content */}
+      <main className="p-8">
+        <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
+        <p className="mt-4 text-gray-600">
+          Welcome to your dashboard! Content goes here.
+        </p>
+      </main>
+      {/* </div> */}
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import axios from "axios";
 import { createContext, useContext, useState, useEffect } from "react";
+import api, { setUnauthorizedHandler } from "../services/dashboardApi";
 
 const AuthContext = createContext(null);
 
@@ -8,13 +9,9 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const setUserFunc = async (token) => {
+  const setUserFunc = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/auth/me", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await fetch("http://localhost:8000/api/auth/me");
 
       if (!res?.ok) throw new Error("Unauthorized");
 
@@ -24,15 +21,50 @@ export const AuthProvider = ({ children }) => {
       setUser(response?.user);
       setIsAuthenticated(true);
     } catch (error) {
-      localStorage.removeItem("token");
+      // localStorage.removeItem("token");
       setUser(null);
       setIsAuthenticated(false);
-      throw error;
+      throw new Error("User not verified");
+    }
+  };
+
+  const registerFunc = async (email, password, confirmPassword) => {
+    // setIsLoading(true);
+    try {
+      const response = await axios({
+        method: "POST",
+        url: "http://localhost:8000/api/auth/register",
+        data: {
+          email: email,
+          password: password,
+          confirmPass: confirmPassword,
+        },
+      });
+      if (response) {
+        console.log("resp is ", response);
+      }
+      // if (!response?.data?.jwt) {
+      //   throw new Error("Token not received!");
+      // }
+
+      // let token = response?.data?.jwt;
+      // localStorage.setItem("token", token);
+
+      // await setUserFunc(token);
+    } catch (error) {
+      let errorObj = error.response.data;
+      if (errorObj) {
+        let err = new Error("error");
+        err.data = errorObj;
+        throw err;
+      }
+    } finally {
+      // setIsLoading(false);
     }
   };
 
   const loginFunc = async (email, password) => {
-    setIsLoading(true);
+    // setIsLoading(true);
     try {
       const response = await axios({
         method: "POST",
@@ -42,23 +74,23 @@ export const AuthProvider = ({ children }) => {
           password: password,
         },
       });
-      console.log("response is ", response?.status);
-      if (response?.status !== 200) {
-        throw new Error("Unable to reach server : ", response?.statusText);
-      }
-      if (!response?.data?.jwt) {
-        throw new Error("Token not received!");
-      }
 
-      let token = response?.data?.jwt;
-      localStorage.setItem("token", token);
+      // if (response?.status !== 200) {
+      //   throw new Error("Unable to reach server : ", response?.statusText);
+      // }
 
-      await setUserFunc(token);
+      console.log("login response is ", response);
+      // await setUserFunc(token);
     } catch (error) {
-      console.log("ERROR DETECTED : ", error);
-      throw error;
+      console.log("error is ", error);
+      let errorObj = error.response.data;
+      if (errorObj) {
+        let err = new Error("error");
+        err.data = errorObj;
+        throw err;
+      }
     } finally {
-      setIsLoading(false);
+      // setIsLoading(false);
     }
   };
 
@@ -78,9 +110,16 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(false);
     } catch (error) {
       console.log("Error is :", error);
+      throw error;
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const forceLogout = () => {
+    localStorage.removeItem("token");
+    setUser(null);
+    setIsAuthenticated(false);
   };
 
   useEffect(() => {
@@ -90,6 +129,8 @@ export const AuthProvider = ({ children }) => {
       return;
     }
     setUserFunc(token);
+    setIsLoading(false);
+    setUnauthorizedHandler(forceLogout);
   }, []);
 
   return (
@@ -101,6 +142,7 @@ export const AuthProvider = ({ children }) => {
         setUser,
         loginFunc,
         logoutFunc,
+        registerFunc,
       }}
     >
       {children}

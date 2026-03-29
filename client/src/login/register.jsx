@@ -1,24 +1,27 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./login.css";
 import { useAuth } from "../utils/AuthContext";
 import { useNavigate } from "react-router-dom";
 
-export default function Login() {
+export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState({
     email: null,
     password: null,
+    confirmPass: null,
   });
 
-  const { loginFunc } = useAuth();
+  const { registerFunc } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
     try {
-      await loginFunc(email, password);
+      await registerFunc(email, password, confirmPassword);
     } catch (error) {
+      console.log("error ", error.data);
       let errorObj = error.data;
       Object.keys(errorObj).forEach((prop) => {
         setErrors((prev) => ({
@@ -26,20 +29,21 @@ export default function Login() {
           [prop]: errorObj[prop],
         }));
       });
-    } finally {
-      // navigate("/dashboard");
     }
   };
 
-  const redirectRegister = () => {
-    navigate("/register");
+  const redirectLogin = () => {
+    navigate("/login");
   };
+
+  useEffect(() => {
+    console.log("errors has changed ", errors);
+  }, [errors]);
 
   return (
     <div className="login-container">
-      <form className="login-box" onSubmit={handleLogin}>
+      <form className="login-box" onSubmit={handleRegister}>
         <h2>Login</h2>
-
         <div className="w-full">
           <input
             id="email"
@@ -57,7 +61,6 @@ export default function Login() {
             {errors?.email || ""}
           </p>
         </div>
-
         <div className="w-full mb-[-1]">
           <input
             id="password"
@@ -74,18 +77,34 @@ export default function Login() {
             {errors?.password || ""}
           </p>
         </div>
+        <div className="w-full">
+          <input
+            id="confirmPass"
+            type="password"
+            placeholder="ConfirmPassword"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            className={`w-full border rounded ${
+              errors?.confirmPass ? "border-red-500" : "border-gray-300"
+            }`}
+          />
+          <p className={`error-text ${errors?.confirmPass ? "visible" : ""}`}>
+            {errors?.confirmPass || ""}
+          </p>
+        </div>
         <div className="flex justify-center items-center">
           <p className="text-sm text-gray-500">
-            New user? Click here to{" "}
+            Already have an account? Click here to{" "}
             <span
-              onClick={redirectRegister}
+              onClick={redirectLogin}
               className="cursor-pointer text-blue-500"
             >
-              sign up
+              sign in
             </span>
           </p>
         </div>
-        <button type="submit">Sign In</button>
+        <button type="submit">Sign Up</button>
       </form>
     </div>
   );
