@@ -9,12 +9,14 @@ import NotFound from "./common/NotFound";
 import PublicLayout from "./layouts/PublicLayout";
 import ProtectedLayout from "./layouts/ProtectedLayout";
 import Notes from "./pages/notes";
+import { Toaster } from "react-hot-toast";
 
 function App() {
   return (
     <>
       <div className="login_root">
         <BrowserRouter>
+          <Toaster />
           <Routes>
             {/* Public Routes */}
             <Route element={<PublicLayout />}>

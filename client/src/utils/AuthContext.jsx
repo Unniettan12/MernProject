@@ -11,20 +11,23 @@ export const AuthProvider = ({ children }) => {
 
   const setUserFunc = async () => {
     try {
-      const res = await fetch("http://localhost:8000/api/auth/me");
+      const response = await axios({
+        method: "GET",
+        baseURL: "http://localhost:8000/api/auth/me",
+        withCredentials: true,
+      });
 
-      if (!res?.ok) throw new Error("Unauthorized");
+      // if (!res?.ok) throw new Error("Unauthorized");
 
-      const response = await res.json();
-      console.log("response inisde authcontext is :", response?.user);
+      console.log("response inisde authcontext is :", response?.data?.user);
 
-      setUser(response?.user);
+      setUser(response?.data?.user);
       setIsAuthenticated(true);
     } catch (error) {
       // localStorage.removeItem("token");
+      console.log("Error is ", error);
       setUser(null);
       setIsAuthenticated(false);
-      throw new Error("User not verified");
     }
   };
 
@@ -39,6 +42,7 @@ export const AuthProvider = ({ children }) => {
           password: password,
           confirmPass: confirmPassword,
         },
+        withCredentials: true,
       });
       if (response) {
         console.log("resp is ", response);
@@ -59,7 +63,7 @@ export const AuthProvider = ({ children }) => {
         throw err;
       }
     } finally {
-      // setIsLoading(false);
+      setUserFunc();
     }
   };
 
@@ -73,6 +77,7 @@ export const AuthProvider = ({ children }) => {
           email: email,
           password: password,
         },
+        withCredentials: true,
       });
 
       // if (response?.status !== 200) {
@@ -91,6 +96,7 @@ export const AuthProvider = ({ children }) => {
       }
     } finally {
       // setIsLoading(false);
+      setUserFunc();
     }
   };
 
@@ -100,19 +106,18 @@ export const AuthProvider = ({ children }) => {
       const response = await axios({
         method: "GET",
         url: "http://localhost:8000/api/auth/logout",
+        withCredentials: true,
       });
 
       if (response?.status !== 200) {
         throw new Error("Server error");
       }
-      localStorage.removeItem("token");
-      setUser(null);
-      setIsAuthenticated(false);
+      // setIsAuthenticated(false);
     } catch (error) {
       console.log("Error is :", error);
-      throw error;
     } finally {
       setIsLoading(false);
+      setUserFunc();
     }
   };
 
@@ -123,12 +128,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setIsLoading(false);
-      return;
-    }
-    setUserFunc(token);
+    // const token = localStorage.getItem("token");
+    // if (!token) {
+    //   setIsLoading(false);
+    //   return;
+    // }
+    setUserFunc();
     setIsLoading(false);
     setUnauthorizedHandler(forceLogout);
   }, []);

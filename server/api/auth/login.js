@@ -22,14 +22,20 @@ import { createToken, maxAge } from "./index.js";
 
 const login = async (req, res) => {
   const { email, password } = req.body;
-
+  res.cookie("logginInDetected", true);
   try {
     const user = await User.login(email, password);
-    if (user) {
-      console.log("user is ", user);
+    console.log("user is ", user);
 
-      const token = createToken(user._id);
-      res.cookie("jwt", token, { httpOnly: true, maxAge: maxAge * 1000 });
+    if (user) {
+      const token = await createToken(user._id);
+      console.log("token  is ", token);
+      res.cookie("jwt", token, {
+        httpOnly: true,
+        maxAge: maxAge * 1000,
+        sameSite: process.env.NODE_ENV === "prod" ? "strict" : "lax",
+        secure: process.env.NODE_ENV === "prod",
+      });
       res.status(200).json({ user: user._id });
     }
     // throw error

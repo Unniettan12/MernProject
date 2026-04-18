@@ -17,7 +17,12 @@ const __filename = fileURLToPath(import.meta.url);
 const serverDir = path.dirname(__filename);
 const root = path.dirname(serverDir);
 
-app.use(cors());
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  }),
+);
 app.use(express.json());
 app.use(express.static(path.join(root, "client/dist")));
 app.use(cookieParser());
@@ -38,3 +43,12 @@ app.get("/", (req, res) => {
 app.get("/health", healthRoutes);
 app.use("/api/auth", auth);
 app.use("/api/dashboard", dashboard);
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+
+  res.status(500).json({
+    success: false,
+    message: "Internal Server Error",
+  });
+});

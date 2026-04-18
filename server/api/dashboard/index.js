@@ -1,5 +1,6 @@
 import express from "express";
 import authMiddleware from "../../middleware/authMiddleware.js";
+import Note from "../../models/Note.js";
 
 const router = express.Router();
 
@@ -11,154 +12,135 @@ const summaryData = {
     activeAgents: 3,
   },
 };
-const ticketListData = {
-  tickets: [
-    {
-      id: "TCK-1023",
-      customer: "Ravi Kumar",
-      subject: "Payment failed but amount debited",
-      status: "open",
-      priority: "high",
-      createdAt: "2026-02-17T10:20:00Z",
-    },
-    {
-      id: "TCK-1022",
-      customer: "Ananya Sharma",
-      subject: "Unable to reset password",
-      status: "in_progress",
-      priority: "medium",
-      createdAt: "2026-02-17T09:05:00Z",
-    },
-    {
-      id: "TCK-1021",
-      customer: "Mohit Verma",
-      subject: "Invoice not generated",
-      status: "resolved",
-      priority: "low",
-      createdAt: "2026-02-16T18:40:00Z",
-    },
-  ],
-};
 
-const agentData = {
-  agents: [
-    {
-      name: "You",
-      status: "online",
-      ticketsHandledToday: 5,
-    },
-    {
-      name: "Support Agent A",
-      status: "online",
-      ticketsHandledToday: 3,
-    },
-    {
-      name: "Support Agent B",
-      status: "offline",
-      ticketsHandledToday: 0,
-    },
-  ],
-};
+const handleError = (res, error, defaultMessage) => {
+  console.error(error);
 
-let notes = {
-  notes: [
-    {
-      id: "1",
-      title: "Note 1",
-      content:
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation",
-    },
-    {
-      id: "2",
-      title: "Note 2",
-      content:
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation",
-    },
-    {
-      id: "3",
-      title: "Note 3",
-      content:
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation",
-    },
-  ],
+  if (error.name === "CastError") {
+    return res
+      .status(400)
+      .json({ success: false, message: "Invalid ID format" });
+  }
+
+  if (error.name === "ValidationError") {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+
+  return res.status(500).json({ success: false, message: defaultMessage });
 };
 
 const summary = (req, res) => {
   res.send(summaryData);
 };
 
-const returnNotes = (req, res) => {
-  res.status(200).send(notes);
+const returnNotes = async (req, res) => {
+  const userId = req.userId;
+  const { search } = req.query;
+  try {
+    const notes = await Note.find({
+      user: userId,
+      $or: [
+        { title: { $regex: search, $options: "i" } },
+        { content: { $regex: search, $options: "i" } },
+      ],
+    }).sort({ createdAt: -1 });
+    res.status(200).json({ success: true, notes });
+  } catch (e) {
+    console.log("error is ", e);
+    return handleError(res, error, "Error fetching notes");
+    // res.status(500).send({ success: false, message: "Error fetching notes" });
+  }
 };
 
-const editNote = (req, res) => {
+const editNote = async (req, res) => {
   const { id } = req.params;
   const { title, content } = req?.body;
+  const userId = req.userId;
   if (!id) {
-    return res.status(400).json({ message: "Process requires id" });
-  }
-
-  console.log("No note with that id ", req?.body);
-
-  let noteToEdit = notes?.notes.find(
-    (note) => note?.id.toString() === id.toString(),
-  );
-  if (!noteToEdit) {
-    return res.status(400).json({ message: "No note present with given id." });
-  }
-
-  noteToEdit.content = content;
-  noteToEdit.title = title;
-
-  res.status(200).json({
-    message: "Note edited successfully",
-    note: noteToEdit,
-  });
-};
-
-const addNote = (req, res) => {
-  let { title, content } = req?.body;
-
-  if (notes.notes.length >= 6) {
     return res
       .status(400)
-      .json({ message: "Maximum number of notes reached." });
+      .json({ success: false, message: "Process requires id" });
   }
 
-  let noteToAdd = {
-    id: crypto.randomUUID(),
-    title: title,
-    content: content,
-  };
-
-  notes.notes.push(noteToAdd);
-
-  res.status(200).json({
-    status: "OK",
-    message: "Note added successfully",
-    note: noteToAdd,
-  });
+  if (!title && !content) {
+    return res.status(400).json({
+      success: false,
+      message: "At least one field (title/content) must be provided",
+    });
+  }
+  try {
+    const note = await Note.findOneAndUpdate(
+      { _id: id, user: userId },
+      { ...(title && { title }), ...(content && { content }) },
+      { returnDocument: "after" },
+    );
+    if (!note) {
+      return res
+        .status(404)
+        .json({ success: false, messaage: "No note found with that id" });
+    }
+    return res.status(200).json({ success: true, note });
+  } catch (e) {
+    return handleError(res, error, "Error updating note");
+  }
 };
 
-const deleteNote = (req, res) => {
+const addNote = async (req, res) => {
+  const { title, content } = req?.body;
+  const userId = req.userId;
+
+  if (!title || !content) {
+    return res.status(400).json({
+      success: false,
+      message: "Title and content are required",
+    });
+  }
+
+  try {
+    const note = await Note.create({
+      title: title,
+      content: content,
+      user: userId,
+    });
+    if (note) {
+      res.status(200).json({ success: true, note });
+    }
+  } catch (e) {
+    return handleError(res, error, "Error creating note");
+  }
+  // if (notes.notes.length >= 6) {
+  //   return res
+  //     .status(400)
+  //     .json({ message: "Maximum number of notes reached." });
+  // }
+};
+
+const deleteNote = async (req, res) => {
   const { id } = req.params;
+  const userId = req.userId;
   if (!id) {
-    return res.status(400).json({ message: "Process requires id" });
+    return res.status(400).json({
+      success: false,
+      message: "Note ID is required",
+    });
   }
 
-  let noteToDeleteIndex = notes?.notes.findIndex(
-    (note) => note?.id.toString() === id.toString(),
-  );
-  if (noteToDeleteIndex === -1) {
-    return res.status(400).json({ message: "No note present with given id." });
+  try {
+    const note = await Note.findOneAndDelete({ _id: id, user: userId });
+    if (!note) {
+      return res.status(404).json({
+        success: false,
+        message: "Note not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Note deleted successfully",
+    });
+  } catch (e) {
+    return handleError(res, error, "Error deleting note");
   }
-
-  notes.notes.splice(noteToDeleteIndex, 1);
-
-  res.status(200).json({
-    status: "OK",
-    message: "Note deleted successfully",
-  });
 };
 
 router.get("/", authMiddleware, summary);

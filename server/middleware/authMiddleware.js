@@ -19,6 +19,8 @@ const authMiddleware = (req, res, next) => {
     res.cookie("jwt", "", {
       httpOnly: true,
       expires: new Date(0),
+      sameSite: process.env.NODE_ENV === "prod" ? "strict" : "lax",
+      secure: process.env.NODE_ENV === "prod",
     });
 
     return res.status(401).json({

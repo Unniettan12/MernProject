@@ -8,6 +8,7 @@ export const setUnauthorizedHandler = (handler) => {
 
 const auth = axios.create({
   baseURL: "http://localhost:8000/api",
+  withCredentials: true,
 });
 
 // api.interceptors.request.use((config) => {
@@ -22,6 +23,7 @@ const auth = axios.create({
 
 const dashboard = axios.create({
   baseURL: "http://localhost:8000/api/dashboard",
+  withCredentials: true,
 });
 
 dashboard.interceptors.response.use(
@@ -42,7 +44,7 @@ auth.interceptors.response.use(
   (err) => {
     if (err.response?.status === 401) {
       //   localStorage.removeItem("token");
-      onUnauthorized();
+      // onUnauthorized();
     }
     return Promise.reject(err);
   },

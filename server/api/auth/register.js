@@ -30,9 +30,14 @@ const register = async (req, res) => {
     }
     const user = await User.create({ email, password });
     console.log("user inside is ", user);
-    const token = createToken(user._id);
+    const token = await createToken(user._id);
 
-    res.cookie("jwt", token, { httpOnly: true, maxAge: maxAge * 1000 });
+    res.cookie("jwt", token, {
+      httpOnly: true,
+      maxAge: maxAge * 1000,
+      sameSite: process.env.NODE_ENV === "prod" ? "strict" : "lax",
+      secure: process.env.NODE_ENV === "prod",
+    });
     res.status(200).json({ user: user._id });
   } catch (e) {
     const errors = handleErrors(e);
