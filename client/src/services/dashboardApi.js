@@ -7,7 +7,7 @@ export const setUnauthorizedHandler = (handler) => {
 };
 
 const auth = axios.create({
-  baseURL: "http://localhost:8000/api",
+  baseURL: `${import.meta.env.VITE_API_URL}/api`,
   withCredentials: true,
 });
 
@@ -22,7 +22,7 @@ const auth = axios.create({
 // });
 
 const dashboard = axios.create({
-  baseURL: "http://localhost:8000/api/dashboard",
+  baseURL: `${import.meta.env.VITE_API_URL}/api/dashboard`,
   withCredentials: true,
 });
 

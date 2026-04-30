@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await axios({
         method: "GET",
-        baseURL: "http://localhost:8000/api/auth/me",
+        baseURL: `${import.meta.env.VITE_API_URL}/api/auth/me`,
         withCredentials: true,
       });
 
@@ -36,7 +36,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await axios({
         method: "POST",
-        url: "http://localhost:8000/api/auth/register",
+        url: `${import.meta.env.VITE_API_URL}/api/auth/register`,
         data: {
           email: email,
           password: password,
@@ -72,7 +72,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await axios({
         method: "POST",
-        url: "http://localhost:8000/api/auth/login",
+        url: `${import.meta.env.VITE_API_URL}/api/auth/login`,
         data: {
           email: email,
           password: password,
@@ -105,7 +105,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await axios({
         method: "GET",
-        url: "http://localhost:8000/api/auth/logout",
+        url: `${import.meta.env.VITE_API_URL}/api/auth/logout`,
         withCredentials: true,
       });
 
