@@ -17,9 +17,20 @@ const __filename = fileURLToPath(import.meta.url);
 const serverDir = path.dirname(__filename);
 const root = path.dirname(serverDir);
 
+const allowedOrigins = [
+  "http://localhost:5173", // local dev (Vite)
+  "https://your-app.vercel.app",
+];
+
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   }),
 );
