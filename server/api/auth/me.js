@@ -20,7 +20,7 @@ const me = async (req, res) => {
       res.cookie("jwt", "", {
         httpOnly: true,
         expires: new Date(0),
-        sameSite: process.env.NODE_ENV === "prod" ? "strict" : "lax",
+        sameSite: process.env.NODE_ENV === "prod" ? "none" : "lax",
         secure: process.env.NODE_ENV === "prod",
       });
       res.status(401).json({ user: null, message: "Authentication failed" });

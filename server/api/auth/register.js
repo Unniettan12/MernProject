@@ -35,7 +35,7 @@ const register = async (req, res) => {
     res.cookie("jwt", token, {
       httpOnly: true,
       maxAge: maxAge * 1000,
-      sameSite: process.env.NODE_ENV === "prod" ? "strict" : "lax",
+      sameSite: process.env.NODE_ENV === "prod" ? "none" : "lax",
       secure: process.env.NODE_ENV === "prod",
     });
     res.status(200).json({ user: user._id });

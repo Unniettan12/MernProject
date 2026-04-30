@@ -22,7 +22,6 @@ import { createToken, maxAge } from "./index.js";
 
 const login = async (req, res) => {
   const { email, password } = req.body;
-  res.cookie("logginInDetected", true);
   try {
     const user = await User.login(email, password);
     console.log("user is ", user);
@@ -33,7 +32,7 @@ const login = async (req, res) => {
       res.cookie("jwt", token, {
         httpOnly: true,
         maxAge: maxAge * 1000,
-        sameSite: process.env.NODE_ENV === "prod" ? "strict" : "lax",
+        sameSite: process.env.NODE_ENV === "prod" ? "none" : "lax",
         secure: process.env.NODE_ENV === "prod",
       });
       res.status(200).json({ user: user._id });
