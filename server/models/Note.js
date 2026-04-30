@@ -17,7 +17,9 @@ const schema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    tags: [String],
   },
   { timeStamps: true },
 );
+schema.index({ title: "text", content: "text" });
 export default mongoose.model("Note", schema);

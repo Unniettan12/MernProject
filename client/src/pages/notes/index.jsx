@@ -1,116 +1,110 @@
-import axios from "axios";
 import React, { useEffect, useState } from "react";
 import api from "../../services/dashboardApi";
 import toast from "react-hot-toast";
-import { IoSearch, IoCloseSharp } from "react-icons/io5";
+import { IoSearch, IoCloseSharp, IoTrashOutline } from "react-icons/io5";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import TagInput from "../components/TagInput";
 
 const EditForm = ({
   id,
   initContent = "",
   initTitle = "",
+  initTags = [],
   submitFunc = () => {},
   cancelFunc = () => {},
   isLoading,
+  tagsList = [],
 }) => {
   const [content, changeContent] = useState(initContent);
   const [title, changeTitle] = useState(initTitle);
+  const [tags, changeTags] = useState(initTags);
 
   useEffect(() => {
     changeContent(initContent);
     changeTitle(initTitle);
-  }, [initContent, initTitle]);
+    changeTags(initTags);
+  }, [initContent, initTitle, initTags]);
+
   return (
-    <>
-      <div className="title_box mb-2 shrink-0">
-        {/* <p className="text-left text-lg font-semibold">{title}</p> */}
-        <input
-          className="w-full border border-gray-300 p-2 rounded text-lg font-semibold"
-          id={`${id}-title`}
-          minLength={1}
-          maxLength={20}
-          value={title}
-          onChange={(e) => {
-            changeTitle(e.target.value);
-          }}
+    <form
+      className="flex flex-col h-full text-left"
+      onSubmit={(e) => {
+        e.preventDefault();
+        submitFunc(id, title, content, tags);
+      }}
+      onReset={(e) => {
+        e.preventDefault();
+        cancelFunc();
+      }}
+    >
+      <input
+        className="w-full border border-gray-300 px-3 py-2 rounded text-lg font-semibold mb-2 focus:outline-none focus:ring-2 focus:ring-blue-200"
+        value={title}
+        onChange={(e) => changeTitle(e.target.value)}
+      />
+
+      <textarea
+        className="flex-1 w-full px-3 py-2 resize-none border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200 text-sm"
+        value={content}
+        onChange={(e) => changeContent(e.target.value)}
+      />
+
+      <div className="mt-2">
+        {/* <p className="text-xs text-gray-500 mb-1">Tags</p> */}
+        <TagInput
+          availableTags={tagsList}
+          selectedTags={tags}
+          setSelectedTags={changeTags}
         />
       </div>
-      <div className="content_box">
-        <form
-          name={`note_${id}`}
-          className="h-full"
-          onSubmit={(e) => {
-            e.preventDefault();
-            submitFunc(id, title, content);
-          }}
-          onReset={(e) => {
-            e.preventDefault();
-            cancelFunc();
-          }}
+
+      <div className="flex justify-between mt-3">
+        <button
+          disabled={isLoading}
+          className={`px-4 py-1 rounded text-blue-500 border ${
+            isLoading
+              ? "border-gray-400"
+              : "border-blue-500 hover:border-blue-600"
+          }`}
+          type="submit"
         >
-          <textarea
-            className="h-[100%] w-full px-2 py-2 resize-none border-1 rounded-lg border-[#ADADAD] px-2"
-            id={`${id}-content`}
-            name={`note_edit`}
-            minLength={1}
-            maxLength={1000}
-            value={content}
-            onChange={(e) => changeContent(e.target.value)}
-          />
-          <div className="flex justify-between mt-1">
-            <button
-              disabled={isLoading}
-              className={`px-4 py-1 rounded text-white ${
-                isLoading
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-blue-500 hover:bg-blue-600"
-              }`}
-              type="submit"
-            >
-              {isLoading ? "Saving..." : "Submit"}
-            </button>
-            <button
-              disabled={isLoading}
-              className="px-4 py-1 rounded border border-gray-300 hover:bg-gray-100"
-              type="reset"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
+          {isLoading ? "Saving..." : "Submit"}
+        </button>
+
+        <button
+          disabled={isLoading}
+          className="px-4 py-1 border rounded hover:bg-gray-100"
+          type="reset"
+        >
+          Cancel
+        </button>
       </div>
-    </>
+    </form>
   );
 };
 
 const NoteObject = ({
   note,
-  editNote,
+  editMutation,
+  deleteMutation,
   cancelAction = () => {},
-  deleteNote = async () => {},
   isNew = false,
+  tagsList = [],
 }) => {
-  console.log("note destructure :", note);
-  const { title, content, _id = null } = note;
+  const { title, content, _id = null, tags = [] } = note;
   const [editing, setEditing] = useState(isNew);
-  const [loading, setLoading] = useState(false);
 
-  const editFunc = async (_id, title, content) => {
-    try {
-      setLoading(true);
-      const resp = await editNote(_id, title, content);
-      if (resp === 200) {
-        setEditing(false);
-      }
-    } catch (error) {
-      console.log("eror is ", error);
-    } finally {
-      setLoading(false);
-    }
+  const editFunc = (_id, title, content, tags) => {
+    editMutation.mutate(
+      { id: _id, title, content, tags },
+      {
+        onSuccess: () => setEditing(false),
+      },
+    );
   };
 
-  const deleteFunc = async () => {
-    console.log("id is ", _id);
-    const resp = await deleteNote(_id);
+  const deleteFunc = () => {
+    deleteMutation.mutate(_id);
   };
 
   const cancelFunc = () => {
@@ -119,52 +113,56 @@ const NoteObject = ({
   };
 
   return (
-    <div className="w-full p-4 h-64 bg-white border border-gray-200 rounded shadow-sm flex flex-col">
+    <div className="w-full p-4 min-h-[18rem] bg-white border border-gray-200 rounded-lg shadow-sm flex flex-col text-left">
       {editing ? (
-        <>
-          <EditForm
-            id={_id}
-            initContent={content}
-            initTitle={title}
-            submitFunc={editFunc}
-            cancelFunc={cancelFunc}
-            isLoading={loading}
-            setLoading={setLoading}
-          />
-        </>
+        <EditForm
+          id={_id}
+          initContent={content}
+          initTitle={title}
+          initTags={tags}
+          submitFunc={editFunc}
+          cancelFunc={cancelFunc}
+          isLoading={editMutation.isPending}
+          tagsList={tagsList}
+        />
       ) : (
         <>
-          <div className="title_box mb-2 shrink-0 flex flex-row align-center justify-between">
-            <div className="flex justify-between items-center mb-2 w-full">
-              <p className="text-lg font-semibold text-left">{title}</p>
-              <button
-                onClick={deleteFunc}
-                // className="text-sm text-red-500"
-                className="transparent_button hover:!border-red-500 hover:!shadow-[0_0_0_2px_rgba(251,44,54,0.2)]"
-              >
-                Delete
-              </button>
-            </div>
+          {/* HEADER */}
+          <div className="flex justify-between items-start mb-2">
+            <p className="text-lg font-semibold">{title}</p>
+
+            <button
+              onClick={deleteFunc}
+              className="text-sm text-gray-400 hover:text-red-500 !px-0"
+            >
+              <IoTrashOutline />
+            </button>
           </div>
-          <div className="flex-1 overflow-y-auto text-left text-gray-700 whitespace-pre-wrap">
+
+          {/* CONTENT */}
+          <div className="flex-1 overflow-y-auto text-gray-700 whitespace-pre-wrap text-sm text-left">
             {content}
           </div>
+
+          {/* TAGS */}
+          {tags.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="text-xs px-2 py-[2px] bg-blue-100 text-blue-700 rounded-full"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
         </>
       )}
-      {/* <div className="title_box mb-2 shrink-0">
-        <p className="text-left text-lg font-semibold">{title}</p>
-      </div> */}
-      {/* <div className="content_box flex-1 overflow-y-auto pr-1 custom-scrollbar">
-        {editing ? (
-          <EditForm id={id} initContent={content} submitFunc={editFunc} />
-        ) : (
-          <p className="text-left whitespace-pre-wrap">{content}</p>
-        )}
-      </div> */}
+
       {!editing && (
-        <div className="buttons_box mt-3 shrink-0 flex justify-end">
+        <div className="mt-3 flex justify-end">
           <button
-            // className="mt-3 px-4 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
             className="transparent_button"
             onClick={() => setEditing(true)}
           >
@@ -177,129 +175,170 @@ const NoteObject = ({
 };
 
 const Notes = () => {
-  const [notes, setNotes] = useState([]);
-  const [error, setError] = useState(null);
+  const queryClient = useQueryClient();
 
   const [adding, setAdding] = useState(false);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
 
-  const getNotes = async (query = "") => {
-    try {
-      let notes = [];
-      const response = await api.get(
-        // query?
-        `/dashboard/notes?search=${encodeURIComponent(query)}`,
-        // : "/dashboard/notes",
-      );
-      console.log("response ", response);
-      if (response?.status === 200) {
-        notes = response?.data?.notes;
-        setNotes(notes);
-      }
-    } catch (error) {
-      console.log("FULL ERROR:", error);
-
-      if (error.response) {
-        console.log("Status:", error.response.status);
-        console.log("Data:", error.response.data);
-        toast(`Error : ${error.response.data.message}`);
-        // setError(error.response.data);
-      } else {
-        console.log("Network error:", error.message);
-        setError({ message: "Server not reachable" });
-      }
-
-      throw error;
-    }
-  };
-
-  const editNote = async (id, title, content) => {
-    try {
-      const response = await api.patch(`/dashboard/notes/${id}`, {
-        title: title,
-        content: content,
-      });
-      if (response?.status === 200) {
-        let editedNote = response?.data?.note;
-        setNotes((prevState) =>
-          prevState.map((item) => (item?._id === id ? editedNote : item)),
-        );
-      }
-      return response?.status;
-    } catch (error) {
-      console.log("FULL ERROR:", error);
-
-      if (error.response) {
-        toast(`Error : ${error.response.data.message}`);
-      } else {
-        console.log("Network error:", error.message);
-        toast(`Error : "Server not reachable`);
-      }
-    }
-  };
-
-  const addNote = async (id, title, content) => {
-    try {
-      const response = await api.post(`/dashboard/notes`, {
-        title: title,
-        content: content,
-      });
-      console.log("response is ", response?.data);
-      if (response?.status === 200) {
-        // getNotes();
-        let noteToAdd = response?.data?.note;
-        setNotes((prevState) => [...prevState, noteToAdd]);
-        setAdding(false);
-      }
-      return response?.status;
-    } catch (error) {
-      console.log("error detected", error);
-    }
-  };
-
-  const deleteNote = async (id) => {
-    try {
-      const response = await api.delete(`/dashboard/notes/${id}`);
-      if (response?.status === 200) {
-        setNotes((prev) => prev.filter((note) => note._id !== id));
-        // getNotes();
-      }
-      return response?.status;
-    } catch (error) {
-      console.log("error detected", error);
-    }
-  };
+  const [tagsList, setTagsList] = useState(["Work", "Idea"]);
 
   useEffect(() => {
-    getNotes();
-  }, []);
+    const delay = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(delay);
+  }, [search]);
+
   useEffect(() => {
     if (showSearch) {
       document.getElementById("search-input")?.focus();
     }
   }, [showSearch]);
 
+  const fetchNotes = async ({ queryKey }) => {
+    const [_key, query] = queryKey;
+
+    const response = await api.get(
+      `/dashboard/notes?search=${encodeURIComponent(query)}`,
+    );
+
+    return response.data.notes;
+  };
+
+  const {
+    data: notes = [],
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["notes", debouncedSearch],
+    queryFn: fetchNotes,
+    keepPreviousData: true,
+    onError: (error) => {
+      toast(error?.response?.data?.message || "Server not reachable");
+    },
+  });
+  const queryKey = ["notes", debouncedSearch];
+
+  const addMutation = useMutation({
+    mutationFn: async ({ title, content, tags }) => {
+      const res = await api.post(`/dashboard/notes`, { title, content, tags });
+      return res.data.note;
+    },
+
+    onMutate: async ({ title, content, tags }) => {
+      await queryClient.cancelQueries({ queryKey });
+
+      const previousNotes = queryClient.getQueryData(queryKey);
+
+      const optimisticNote = {
+        _id: Date.now(),
+        title,
+        content,
+        tags,
+      };
+
+      queryClient.setQueryData(queryKey, (old = []) => [
+        ...old,
+        optimisticNote,
+      ]);
+
+      return { previousNotes };
+    },
+
+    onError: (error, variables, context) => {
+      queryClient.setQueryData(queryKey, context.previousNotes);
+
+      toast(error?.response?.data?.message || "Add failed");
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey });
+      setAdding(false);
+    },
+  });
+
+  const editMutation = useMutation({
+    mutationFn: async ({ id, title, content, tags }) => {
+      const res = await api.patch(`/dashboard/notes/${id}`, {
+        title,
+        content,
+        tags,
+      });
+      return res.data.note;
+    },
+
+    onMutate: async ({ id, title, content, tags }) => {
+      await queryClient.cancelQueries({ queryKey });
+      console.log("previousNotes = ", queryClient.getQueryData(queryKey));
+      const previousNotes = queryClient.getQueryData(queryKey);
+
+      queryClient.setQueryData(queryKey, (old = []) =>
+        old.map((note) =>
+          note._id === id ? { ...note, title, content, tags } : note,
+        ),
+      );
+
+      return { previousNotes };
+    },
+
+    onError: (error, variables, context) => {
+      console.log("context = ", context);
+      queryClient.setQueryData(queryKey, context.previousNotes);
+
+      toast(error?.response?.data?.message || "Edit failed");
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id) => {
+      await api.delete(`/dashboard/notes/${id}`);
+    },
+
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey });
+
+      const previousNotes = queryClient.getQueryData(queryKey);
+
+      queryClient.setQueryData(queryKey, (old = []) =>
+        old.filter((note) => note._id !== id),
+      );
+
+      return { previousNotes };
+    },
+
+    onError: (error, variables, context) => {
+      queryClient.setQueryData(queryKey, context.previousNotes);
+
+      toast(error?.response?.data?.message || "Delete failed");
+    },
+
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey });
+    },
+  });
+  if (isLoading) {
+    return <p className="text-center mt-10">Loading...</p>;
+  }
+
+  if (isError) {
+    return <p className="text-center mt-10">Error loading notes</p>;
+  }
+
   return (
-    <div className="min-h-screen bg-gray-100 flex justify-center items-start py-10">
+    <div className="min-h-screen bg-gray-100 flex justify-center py-10">
       <div className="w-full px-4">
-        {/* <div className="mb-6 flex justify-end">
-          <button
-            onClick={() => setAdding(!adding)}
-            // className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            className="transparent_button"
-          >
-            {adding ? "Cancel" : "Add Note"}
-          </button>
-        </div> */}
         <div className="mb-6 flex justify-end items-center gap-2">
-          {/* Search Container */}
           <div
-            className={`flex items-center border border-gray-300 rounded bg-white overflow-hidden transition-all duration-300 ease-in-out ${
+            className={`flex items-center border rounded bg-white transition-all ${
               showSearch ? "w-90 px-2" : "w-10 justify-center"
             } h-10`}
           >
-            {/* Input */}
             <input
               id="search-input"
               type="text"
@@ -317,13 +356,7 @@ const Notes = () => {
             />
 
             <button
-              onClick={() => {
-                if (!showSearch) {
-                  setShowSearch(true);
-                } else {
-                  getNotes(search);
-                }
-              }}
+              onClick={() => setShowSearch(true)}
               className="!px-1 !py-1 text-gray-600 hover:text-blue-500 outline-[0px] focus:!outline-[0px]"
             >
               <IoSearch />
@@ -334,7 +367,6 @@ const Notes = () => {
                 onClick={() => {
                   setShowSearch(false);
                   setSearch("");
-                  getNotes();
                 }}
                 className="!px-1 !py-1 text-gray-600 hover:text-red-500 focus:!outline-[0px]"
               >
@@ -343,7 +375,6 @@ const Notes = () => {
             )}
           </div>
 
-          {/* Add button */}
           <button
             onClick={() => setAdding(!adding)}
             className="transparent_button h-10 px-4"
@@ -352,37 +383,27 @@ const Notes = () => {
           </button>
         </div>
 
-        {error === null && (notes.length > 0 || adding) ? (
-          // <div className="bg-red-800 grid grid-cols-3 h-full align-center px-4 py-10">
+        {notes.length > 0 || adding ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {notes.map((note) => (
-              <div key={note?._id} className="flex justify-center">
-                <NoteObject
-                  note={note}
-                  editNote={editNote}
-                  cancelAction={() => {
-                    // getNotes();
-                  }}
-                  deleteNote={deleteNote}
-                />
-              </div>
+              <NoteObject
+                key={note._id}
+                note={note}
+                editMutation={editMutation}
+                deleteMutation={deleteMutation}
+                tagsList={tagsList}
+              />
             ))}
+
             {adding && (
-              <div className="flex justify-center">
-                <NoteObject
-                  note={{
-                    id: null,
-                    title: "",
-                    content: "",
-                  }}
-                  editNote={addNote}
-                  cancelAction={async () => {
-                    // getNotes();
-                    setAdding(false);
-                  }}
-                  isNew={true}
-                />
-              </div>
+              <NoteObject
+                note={{ title: "", content: "" }}
+                editMutation={addMutation}
+                deleteMutation={deleteMutation}
+                isNew
+                cancelAction={() => setAdding(false)}
+                tagsList={tagsList}
+              />
             )}
           </div>
         ) : (

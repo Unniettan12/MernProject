@@ -54,7 +54,7 @@ const returnNotes = async (req, res) => {
 
 const editNote = async (req, res) => {
   const { id } = req.params;
-  const { title, content } = req?.body;
+  const { title, content, tags = [] } = req?.body;
   const userId = req.userId;
   if (!id) {
     return res
@@ -71,7 +71,11 @@ const editNote = async (req, res) => {
   try {
     const note = await Note.findOneAndUpdate(
       { _id: id, user: userId },
-      { ...(title && { title }), ...(content && { content }) },
+      {
+        ...(title && { title }),
+        ...(content && { content }),
+        ...(tags && { tags }),
+      },
       { returnDocument: "after" },
     );
     if (!note) {
@@ -86,7 +90,7 @@ const editNote = async (req, res) => {
 };
 
 const addNote = async (req, res) => {
-  const { title, content } = req?.body;
+  const { title, content, tags = [] } = req?.body;
   const userId = req.userId;
 
   if (!title || !content) {
@@ -100,6 +104,7 @@ const addNote = async (req, res) => {
     const note = await Note.create({
       title: title,
       content: content,
+      tags: tags,
       user: userId,
     });
     if (note) {
