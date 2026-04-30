@@ -19,7 +19,7 @@ const root = path.dirname(serverDir);
 
 const allowedOrigins = [
   "http://localhost:5173", // local dev (Vite)
-  "https://your-app.vercel.app",
+  "https://mern-project-navy-six.vercel.app",
 ];
 
 app.use(
